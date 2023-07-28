@@ -202,14 +202,16 @@ class Dqcp2Dcp(Canonicalization):
             # quasiconvex <= constant
             assert rhs.is_constant(), rhs
             if inverse.invertible(lhs):
-                print("inverting lhs")
+                print("inverting lhs", (lhs <= rhs))
                 # Apply inverse to both sides of constraint.
                 rhs = inverse.inverse(lhs)(rhs)
                 idx = lhs._non_const_idx()[0]
                 expr = lhs.args[idx]
                 if lhs.is_incr(idx):
+                    print("inverted lhs", (expr <= rhs))
                     return self._canonicalize_constraint(expr <= rhs)
                 assert lhs.is_decr(idx)
+                print("inverted lhs", (expr >= rhs))
                 return self._canonicalize_constraint(expr >= rhs)
             elif isinstance(lhs, (maximum, max_atom)):
                 # Lower maximum.
@@ -226,14 +228,16 @@ class Dqcp2Dcp(Canonicalization):
         assert rhs.is_quasiconcave()
         assert lhs.is_constant()
         if inverse.invertible(rhs):
-            print("inverting rhs")
+            print("inverting rhs", (lhs <= rhs))
             # Apply inverse to both sides of constraint.
             lhs = inverse.inverse(rhs)(lhs)
             idx = rhs._non_const_idx()[0]
             expr = rhs.args[idx]
             if rhs.is_incr(idx):
+                print("inverted rhs", (lhs <= expr))
                 return self._canonicalize_constraint(lhs <= expr)
             assert rhs.is_decr(idx)
+            print("inverted rhs", (lhs >= expr))
             return self._canonicalize_constraint(lhs >= expr)
         elif isinstance(rhs, (minimum, min_atom)):
             # Lower minimum.
