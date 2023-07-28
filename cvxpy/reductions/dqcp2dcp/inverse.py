@@ -16,6 +16,7 @@ limitations under the License.
 import numpy as np
 
 from cvxpy import atoms
+from cvxpy.expressions.constants import Constant
 from cvxpy.atoms.affine.add_expr import AddExpression
 from cvxpy.atoms.affine.binary_operators import DivExpression
 from cvxpy.atoms.affine.sum import Sum
@@ -31,6 +32,7 @@ INVERTIBLE = set(
 
 # Inverses are extended-value functions
 def inverse(expr):
+    print(type(expr), expr, type(expr) == atoms.power)
     if type(expr) == atoms.ceil:
         return lambda t: atoms.floor(t)
     elif type(expr) == atoms.floor:
@@ -49,6 +51,8 @@ def inverse(expr):
         def power_inv(t):
             if expr.p.value == 1:
                 return t
+            # if expr.p.value < 0:
+            #     return atoms.power(t, 1/expr.p.value) if t.is_pos() else np.inf
             return atoms.power(t, 1/expr.p.value) if t.is_nonneg() else np.inf
         return power_inv
     elif type(expr) == atoms.multiply:
@@ -93,5 +97,7 @@ def invertible(expr):
         return len(expr._non_const_idx()) == 1
     elif isinstance(expr, (Sum, atoms.cumsum)):
         return expr._is_real()
+    # elif isinstance(expr, atoms.power):
+    #     return expr.p.value >= 0 or hasattr(expr.args[0], "is_pos")
     else:
         return type(expr) in INVERTIBLE

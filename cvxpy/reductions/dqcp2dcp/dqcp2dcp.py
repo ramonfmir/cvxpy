@@ -116,6 +116,7 @@ class Dqcp2Dcp(Canonicalization):
         param_problem = problems.problem.Problem(Minimize(0), real)
         param_problem._lazy_constraints = lazy
         param_problem._bisection_data = BisectionData(
+            # feas_problem, t, *tighten.tighten_fns(objective))
             feas_problem, t, *tighten.tighten_fns(objective))
         return param_problem, InverseData(problem)
 
@@ -166,6 +167,9 @@ class Dqcp2Dcp(Canonicalization):
         lhs = constr.args[0]
         rhs = constr.args[1]
 
+        print("going through constraint:")
+        print(constr)
+
         if isinstance(constr, Inequality):
             # taking inverses can yield +/- infinity; this is handled here.
             lhs_val = np.array(lhs.value)
@@ -178,8 +182,11 @@ class Dqcp2Dcp(Canonicalization):
                 return [False]
 
         if constr.is_dcp():
-            canon_constr, aux_constr = self.canonicalize_tree(constr)
-            return [canon_constr] + aux_constr
+            # if constr.is_dpp():
+                canon_constr, aux_constr = self.canonicalize_tree(constr)
+                return [canon_constr] + aux_constr
+            # else:
+                # return [constr]
 
         # canonicalize lhs <= rhs
         # either lhs or rhs is quasiconvex (and not convex)
@@ -195,6 +202,7 @@ class Dqcp2Dcp(Canonicalization):
             # quasiconvex <= constant
             assert rhs.is_constant(), rhs
             if inverse.invertible(lhs):
+                print("inverting lhs")
                 # Apply inverse to both sides of constraint.
                 rhs = inverse.inverse(lhs)(rhs)
                 idx = lhs._non_const_idx()[0]
@@ -208,6 +216,7 @@ class Dqcp2Dcp(Canonicalization):
                 return [c for arg in lhs.args
                         for c in self._canonicalize_constraint(arg <= rhs)]
             else:
+                print("replacing sublevel set")
                 # Replace quasiconvex atom with a sublevel set.
                 canon_args, aux_args_constr = self._canon_args(lhs)
                 sublevel_set = sets.sublevel(lhs.copy(canon_args), t=rhs)
@@ -217,6 +226,7 @@ class Dqcp2Dcp(Canonicalization):
         assert rhs.is_quasiconcave()
         assert lhs.is_constant()
         if inverse.invertible(rhs):
+            print("inverting rhs")
             # Apply inverse to both sides of constraint.
             lhs = inverse.inverse(rhs)(lhs)
             idx = rhs._non_const_idx()[0]
